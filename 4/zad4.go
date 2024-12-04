@@ -1,32 +1,29 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
-func findSubarrayWithSum(nums []int, target int) [][]int {
-	result := make([][]int, 0)
-	prefixSum := make(map[int]int)
-	sum := 0
+func findSubarrayWithSum(arr []int, target int) [][]int {
+	var result [][]int
+	n := len(arr)
 
-	for i, num := range nums {
-		sum += num
-
-		if sum == target {
-			result = append(result, nums[:i+1])
+	for i := 0; i < n; i++ {
+		sum := 0
+		for j := i; j < n; j++ {
+			sum += arr[j]
+			if sum == target {
+				result = append(result, arr[i:j+1])
+			}
 		}
-
-		if val, ok := prefixSum[sum-target]; ok {
-			result = append(result, nums[val+1:i+1])
-		}
-
-		prefixSum[sum] = i
 	}
 
 	return result
 }
 
 func main() {
-	nums := []int{4, -7, 1, 5, -4, 0, -3, 2, 4, 1}
-	target := 5
-	subarrays := findSubarrayWithSum(nums, target)
-	fmt.Println("Подмассивы с суммой", target, ":", subarrays)
+	arr := []int{4, -7, 1, 5, -4, 0, -3, 2, 4, 1}
+	target := 6
+	subarrays := findSubarrayWithSum(arr, target)
+	fmt.Println("подмассиивы с суммойй", target, ":", subarrays)
 }

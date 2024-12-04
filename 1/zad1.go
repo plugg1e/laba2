@@ -5,69 +5,139 @@ import (
 	"strings"
 )
 
-func evaluateExpression(expression string) int {
-	// Удаляем пробелы из выражения
-	expression = strings.ReplaceAll(expression, " ", "")
+type Stack struct {
+	data []string
+}
 
-	// Стек для операндов
-	operands := make([]int, 0)
-	// Стек для операторов
-	operators := make([]rune, 0)
+func (s *Stack) Push(item string) {
+	s.data = append(s.data, item)
+}
 
-	// Функция для применения оператора к двум операндам
-	applyOperator := func() {
-		operator := operators[len(operators)-1]
-		operators = operators[:len(operators)-1]
-
-		b := operands[len(operands)-1]
-		a := operands[len(operands)-2]
-		operands = operands[:len(operands)-2]
-
-		switch operator {
-		case '&':
-			operands = append(operands, a&b)
-		case '|':
-			operands = append(operands, a|b)
-		case '^':
-			operands = append(operands, a^b)
-		}
+func (s *Stack) Pop() string {
+	if len(s.data) == 0 {
+		return ""
 	}
+	item := s.data[len(s.data)-1]
+	s.data = s.data[:len(s.data)-1]
+	return item
+}
+
+func (s *Stack) Peek() string {
+	if len(s.data) == 0 {
+		return ""
+	}
+	return s.data[len(s.data)-1]
+}
+
+func (s *Stack) IsEmpty() bool {
+	return len(s.data) == 0
+}
+
+func precedence(op string) int {
+	switch op {
+	case "!":
+		return 3
+	case "&":
+		return 2
+	case "|", "^":
+		return 1
+	default:
+		return 0
+	}
+}
+
+func infixToPostfix(expression string) string {
+	var output strings.Builder
+	var stack Stack
 
 	for _, char := range expression {
-		switch char {
-		case '0', '1':
-			operands = append(operands, int(char-'0'))
-		case '!':
-			// Применяем отрицание к следующему операнду
-			next := operands[len(operands)-1]
-			operands[len(operands)-1] = 1 - next
-		case '&', '|', '^':
-			// Применяем операторы в соответствии с приоритетом
-			for len(operators) > 0 && operators[len(operators)-1] != '(' {
-				applyOperator()
+		token := string(char)
+
+		switch token {
+		case "0", "1":
+			output.WriteString(token)
+		case "(":
+			stack.Push(token)
+		case ")":
+			for !stack.IsEmpty() && stack.Peek() != "(" {
+				output.WriteString(stack.Pop())
 			}
-			operators = append(operators, char)
-		case '(':
-			operators = append(operators, char)
-		case ')':
-			// Применяем все операторы до открывающей скобки
-			for len(operators) > 0 && operators[len(operators)-1] != '(' {
-				applyOperator()
+			stack.Pop()
+		default:
+			for !stack.IsEmpty() && precedence(stack.Peek()) >= precedence(token) {
+				output.WriteString(stack.Pop())
 			}
-			operators = operators[:len(operators)-1]
+			stack.Push(token)
 		}
 	}
 
-	// Применяем оставшиеся операторы
-	for len(operators) > 0 {
-		applyOperator()
+	for !stack.IsEmpty() {
+		output.WriteString(stack.Pop())
 	}
 
-	return operands[0]
+	return output.String()
+}
+
+func evaluatePostfix(expression string) int {
+	var stack Stack
+
+	for _, char := range expression {
+		token := string(char)
+
+		switch token {
+		case "0", "1":
+			stack.Push(token)
+		case "!":
+			val := stack.Pop()
+			if val == "0" {
+				stack.Push("1")
+			} else {
+				stack.Push("0")
+			}
+		case "&", "|", "^":
+			val2 := stack.Pop()
+			val1 := stack.Pop()
+			result := evaluateOperation(val1, val2, token)
+			stack.Push(result)
+		}
+	}
+
+	return toInt(stack.Pop())
+}
+
+func evaluateOperation(val1, val2, op string) string {
+	a := toInt(val1)
+	b := toInt(val2)
+
+	switch op {
+	case "&":
+		return toStr(a & b)
+	case "|":
+		return toStr(a | b)
+	case "^":
+		return toStr(a ^ b)
+	default:
+		return "0"
+	}
+}
+
+func toInt(val string) int {
+	if val == "1" {
+		return 1
+	}
+	return 0
+}
+
+func toStr(val int) string {
+	if val == 1 {
+		return "1"
+	}
+	return "0"
 }
 
 func main() {
-	expression := "1 & (0 | 1) ^ 0"
-	result := evaluateExpression(expression)
-	fmt.Println("Результат:", result)
+	expression := "1&(0|1)^0|1"
+	postfix := infixToPostfix(expression)
+	result := evaluatePostfix(postfix)
+	fmt.Println("овтет:", result)
 }

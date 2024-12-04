@@ -1,18 +1,24 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
-func countSubordinates(employees map[string]string) map[string]int {
-	subordinatesCount := make(map[string]int)
+// Функция для подсчета подчиненных
+func countSubordinates(employees map[string]string, manager string, subordinatesCount map[string]int) int {
+	if subordinatesCount[manager] != 0 {
+		return subordinatesCount[manager]
+	}
 
-	for employee, manager := range employees {
-		for manager != "" {
-			subordinatesCount[manager]++
-			manager = employees[manager]
+	count := 0
+	for employee, m := range employees {
+		if m == manager {
+			count += 1 + countSubordinates(employees, employee, subordinatesCount)
 		}
 	}
 
-	return subordinatesCount
+	subordinatesCount[manager] = count
+	return count
 }
 
 func main() {
@@ -24,6 +30,17 @@ func main() {
 		"E": "E",
 	}
 
-	result := countSubordinates(employees)
-	fmt.Println("Количество подчиненных:", result)
+	subordinatesCount := make(map[string]int)
+
+	// Инициализируем счетчик для всех сотрудников
+	for employee := range employees {
+		subordinatesCount[employee] = 0
+	}
+
+	// Подсчитываем количество подчиненных для каждого менеджера
+	for manager := range employees {
+		countSubordinates(employees, manager, subordinatesCount)
+	}
+
+	fmt.Println("Subordinates count:", subordinatesCount)
 }

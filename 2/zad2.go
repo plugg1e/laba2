@@ -2,39 +2,100 @@ package main
 
 import (
 	"fmt"
-	"math"
+	"hash/fnv"
 )
 
-func minSubsetDifference(nums []int) int {
-	totalSum := 0
-	for _, num := range nums {
-		totalSum += num
+const (
+	tableSize = 100
+)
+
+type Set struct {
+	table []*Node
+}
+
+type Node struct {
+	key  string
+	next *Node
+}
+
+func NewSet() *Set {
+	return &Set{
+		table: make([]*Node, tableSize),
 	}
+}
 
-	dp := make([]bool, totalSum/2+1)
-	dp[0] = true
+func (s *Set) hash(key string) int {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return int(h.Sum32()) % tableSize
+}
 
-	for _, num := range nums {
-		for j := totalSum / 2; j >= num; j-- {
-			if dp[j-num] {
-				dp[j] = true
+func (s *Set) Add(key string) {
+	index := s.hash(key)
+	if s.table[index] == nil {
+		s.table[index] = &Node{key: key}
+	} else {
+		current := s.table[index]
+		for current.next != nil {
+			if current.key == key {
+				return // элемент существует
 			}
+			current = current.next
 		}
-	}
-
-	minDiff := math.MaxInt32
-	for j := totalSum / 2; j >= 0; j-- {
-		if dp[j] {
-			minDiff = totalSum - 2*j
-			break
+		if current.key == key {
+			return // элемент существует
 		}
+		current.next = &Node{key: key}
 	}
+}
 
-	return minDiff
+func (s *Set) Remove(key string) {
+	index := s.hash(key)
+	if s.table[index] == nil {
+		return
+	}
+	if s.table[index].key == key {
+		s.table[index] = s.table[index].next
+		return
+	}
+	prev := s.table[index]
+	current := prev.next
+	for current != nil {
+		if current.key == key {
+			prev.next = current.next
+			return
+		}
+		prev = current
+		current = current.next
+	}
+}
+
+func (s *Set) Contains(key string) bool {
+	index := s.hash(key)
+	current := s.table[index]
+	for current != nil {
+		if current.key == key {
+			return true
+		}
+		current = current.next
+	}
+	return false
 }
 
 func main() {
-	nums := []int{6, 8, 1, 14, 7}
-	minDiff := minSubsetDifference(nums)
-	fmt.Println("минимальная разница:", minDiff)
+	set := NewSet()
+
+	// добавление элементов
+	set.Add("apple")
+	set.Add("banana")
+
+	// проверка наличия
+	fmt.Println("содержит 'яяблк':", set.Contains("apple"))
+	fmt.Println("содержит 'банан':", set.Contains("banana"))
+	fmt.Println("содержит 'вишня':", set.Contains("cherry"))
+	fmt.Println("содержит 'хлеб':", set.Contains("date"))
+
+	// удаление элемента
+	set.Remove("banana")
+	fmt.Println("содержит 'банан' после удаления:", set.Contains("banana")) // false
 }
